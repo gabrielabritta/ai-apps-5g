@@ -2,7 +2,7 @@
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .mqtt_manager import MQTTClientManager
+    from .modules.mqtt_manager import MQTTClientManager
 
 active_sessions: Dict[str, Dict[str, Any]] = {}
 docker_container_running = False
