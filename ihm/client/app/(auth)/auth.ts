@@ -69,10 +69,11 @@ export const {
       id: "guest",
       credentials: {},
       async authorize() {
-        // Always return the fixed guest user
+        // Generate a unique ID for each guest user
+        const guestUser = await createGuestUser();
         return { 
-          id: "00000000-0000-0000-0000-000000000001", 
-          email: "guest-fixed@temp.com",
+          id: guestUser[0].id, 
+          email: guestUser[0].email,
           type: "guest" 
         };
       },

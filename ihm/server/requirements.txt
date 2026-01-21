@@ -1,23 +1,20 @@
 # FastAPI and server dependencies
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-pydantic>=2.7.4,<3.0.0
+fastapi==0.128.0
+uvicorn[standard]==0.40.0
+pydantic==2.12.5
 
 # Additional dependencies for functionality
-python-multipart==0.0.6
+python-multipart==0.0.21
 
 # Database and cache dependencies for local development
-psycopg2-binary==2.9.9
-redis==5.0.1
+psycopg2-binary==2.9.11
+redis==7.1.0
 
 # Environment and configuration
-python-dotenv==1.0.0
+python-dotenv==1.2.1
 
 # MQTT client for AI Assistant agent communication
-paho-mqtt>=2.0.0
+paho-mqtt==2.1.0
 
 # REST API client
-httpx==0.27.0
-
-# Note: Langchain dependencies are not needed here as AI Assistant runs in Docker container
-# All langchain dependencies are installed in the Docker container image
+httpx==0.28.1

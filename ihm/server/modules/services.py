@@ -13,46 +13,109 @@ from ihm.server.modules.mqtt_manager import initialize_mqtt_client
 from ihm.server.modules.rest_api_client import kill_ai_assistant_agent, start_ai_assistant_agent
 
 
-async def start_services_if_needed(active_count: int, user_id: str) -> None:
-    """Start the AI Assistant via REST APIs when the first session connects."""
-    if not USE_AI_ASSISTANT or active_count != 1 or state.docker_container_running:
-        return
-
-    await start_ai_assistant_agent(user_id=user_id)
-    state.docker_container_running = True
-    state.last_user_id = user_id
-    await asyncio.sleep(2)
-    if not initialize_mqtt_client():
-        raise HTTPException(status_code=503, detail="MQTT client failed to initialize")
-
-
-async def shutdown_services_if_idle(active_count: int, user_id: str) -> bool:
-    """Stop the AI Assistant via REST APIs when there are no active sessions."""
-    if active_count != 0:
-        return False
-
-    if state.mqtt_client_manager:
-        state.mqtt_client_manager.disconnect()
-        state.mqtt_client_manager = None
-    if state.docker_container_running:
-        await kill_ai_assistant_agent(user_id=user_id)
-        state.docker_container_running = False
-    return True
-
-
-async def ensure_services_ready() -> None:
-    """Ensure REST-backed services are running before handling a request."""
+async def start_services_if_needed(user_id: str, session_id: str) -> None:
+    """Start the AI Assistant via REST APIs for a specific session if not already running."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"📦 START_SERVICES_IF_NEEDED - Session ID: {session_id}, User ID: {user_id}")
+    print(f"📦 START_SERVICES_IF_NEEDED - Session ID: {session_id}, User ID: {user_id}")
+    
     if not USE_AI_ASSISTANT:
+        logger.info(f"⏭️  SKIPPING - USE_AI_ASSISTANT is False")
+        print(f"⏭️  SKIPPING - USE_AI_ASSISTANT is False")
+        return
+    
+    # Check if this session already has a Docker container running
+    if session_id in state.session_docker_containers and state.session_docker_containers[session_id]:
+        logger.info(f"⏭️  SKIPPING - Docker already running for session {session_id}")
+        print(f"⏭️  SKIPPING - Docker already running for session {session_id}")
         return
 
-    if not state.docker_container_running:
-        user_id = next(iter(state.active_sessions.values()), {}).get("user_id", "1")
-        await start_ai_assistant_agent(user_id=user_id)
-        state.docker_container_running = True
+    logger.info(f"🔄 STARTING SERVICES - Calling start_ai_assistant_agent")
+    print(f"🔄 STARTING SERVICES - Calling start_ai_assistant_agent")
+    
+    await start_ai_assistant_agent(user_id=user_id, session_id=session_id)
+    state.session_docker_containers[session_id] = True
+    state.last_user_id = user_id
+    
+    logger.info(f"⏳ WAITING 2 seconds for Docker to initialize...")
+    print(f"⏳ WAITING 2 seconds for Docker to initialize...")
+    await asyncio.sleep(2)
+    
+    logger.info(f"📡 INITIALIZING MQTT CLIENT for session {session_id}")
+    print(f"📡 INITIALIZING MQTT CLIENT for session {session_id}")
+    mqtt_client = initialize_mqtt_client()
+    if not mqtt_client:
+        raise HTTPException(status_code=503, detail="MQTT client failed to initialize")
+    state.session_mqtt_clients[session_id] = mqtt_client
+    
+    logger.info(f"✅ SERVICES STARTED - Session {session_id} ready!")
+    print(f"✅ SERVICES STARTED - Session {session_id} ready!")
+
+
+async def shutdown_services_if_idle(session_id: str, user_id: str) -> bool:
+    """Stop the AI Assistant via REST APIs for a specific session immediately."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"🔌 SHUTDOWN_SERVICES - Session ID: {session_id}, User ID: {user_id}")
+    print(f"🔌 SHUTDOWN_SERVICES - Session ID: {session_id}, User ID: {user_id}")
+    
+    # Disconnect MQTT client for this session
+    if session_id in state.session_mqtt_clients:
+        logger.info(f"📡 DISCONNECTING MQTT CLIENT for session {session_id}")
+        print(f"📡 DISCONNECTING MQTT CLIENT for session {session_id}")
+        state.session_mqtt_clients[session_id].disconnect()
+        del state.session_mqtt_clients[session_id]
+    
+    # Stop Docker container for this session
+    if session_id in state.session_docker_containers and state.session_docker_containers[session_id]:
+        logger.info(f"🔄 STOPPING DOCKER - Calling kill_ai_assistant_agent")
+        print(f"🔄 STOPPING DOCKER - Calling kill_ai_assistant_agent")
+        await kill_ai_assistant_agent(user_id=user_id, session_id=session_id)
+        del state.session_docker_containers[session_id]
+        logger.info(f"✅ SERVICES STOPPED for session {session_id}")
+        print(f"✅ SERVICES STOPPED for session {session_id}")
+        return True
+    
+    logger.info(f"⏭️  NO SERVICES TO STOP for session {session_id}")
+    print(f"⏭️  NO SERVICES TO STOP for session {session_id}")
+    return False
+
+
+async def ensure_services_ready(user_id: str, session_id: str) -> None:
+    """Ensure REST-backed services are running for a specific session before handling a request."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"🔍 ENSURE_SERVICES_READY - Session ID: {session_id}, User ID: {user_id}")
+    print(f"🔍 ENSURE_SERVICES_READY - Session ID: {session_id}, User ID: {user_id}")
+    
+    if not USE_AI_ASSISTANT:
+        logger.info(f"⏭️  SKIPPING - USE_AI_ASSISTANT is False")
+        print(f"⏭️  SKIPPING - USE_AI_ASSISTANT is False")
+        return
+
+    # Check if this session's Docker container is running
+    if session_id not in state.session_docker_containers or not state.session_docker_containers[session_id]:
+        logger.info(f"🔄 STARTING DOCKER - Calling start_ai_assistant_agent")
+        print(f"🔄 STARTING DOCKER - Calling start_ai_assistant_agent")
+        await start_ai_assistant_agent(user_id=user_id, session_id=session_id)
+        state.session_docker_containers[session_id] = True
         state.last_user_id = user_id
 
-    if not initialize_mqtt_client():
-        raise HTTPException(status_code=503, detail="MQTT client failed to initialize")
+    # Check if this session has an MQTT client
+    if session_id not in state.session_mqtt_clients:
+        logger.info(f"📡 INITIALIZING MQTT CLIENT for session {session_id}")
+        print(f"📡 INITIALIZING MQTT CLIENT for session {session_id}")
+        mqtt_client = initialize_mqtt_client()
+        if not mqtt_client:
+            raise HTTPException(status_code=503, detail="MQTT client failed to initialize")
+        state.session_mqtt_clients[session_id] = mqtt_client
+    
+    logger.info(f"✅ SERVICES READY for session {session_id}")
+    print(f"✅ SERVICES READY for session {session_id}")
 
 
 async def build_sse_stream(

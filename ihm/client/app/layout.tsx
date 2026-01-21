@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
+import { SessionProvider as SessionIdProvider } from "@/lib/session-context";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://chat.vercel.ai"),
@@ -79,7 +80,11 @@ export default function RootLayout({
           enableSystem
         >
           <Toaster position="top-center" />
-          <SessionProvider>{children}</SessionProvider>
+          <SessionProvider>
+            <SessionIdProvider>
+              {children}
+            </SessionIdProvider>
+          </SessionProvider>
         </ThemeProvider>
       </body>
     </html>

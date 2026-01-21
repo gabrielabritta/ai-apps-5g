@@ -19,13 +19,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   const session = await auth();
 
-  // TEMPORARY FIX: Always use fixed guest user
-  const fixedGuestUser = {
-    id: "00000000-0000-0000-0000-000000000001",
-    email: "guest-fixed@temp.com",
-    type: "guest"
-  };
-
   if (!session) {
     redirect("/api/auth/guest");
   }
@@ -35,8 +28,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       return notFound();
     }
 
-    // Always allow access for fixed guest user
-    if (fixedGuestUser.id !== chat.userId) {
+    // Check if user has access to this chat
+    if (session.user.id !== chat.userId) {
       return notFound();
     }
   }

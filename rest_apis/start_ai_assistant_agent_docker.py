@@ -11,18 +11,33 @@ app = Flask(__name__)
 @app.route("/ai_assistant/start_docker", methods=["POST"])
 def start_ai_assistant_agent_docker():
     """Starts an AiAssistant agent inside a Docker container based on the provided input data."""
+    print("\n" + "="*80)
+    print("🚀 REST API CALLED - START DOCKER")
+    print("="*80)
+    
     data = request.get_json(silent=True)
     if data is None:
+        print("❌ ERROR: Malformed JSON")
         return jsonify({"error": "Malformed JSON"}), 400
+
+    print(f"📦 Received data: {data}")
 
     # Validate input data
     try:
         input_data = AiAssistantInputData(**data)
+        print(f"✅ Data validated successfully")
+        print(f"   - User ID: {input_data.user_id}")
+        print(f"   - Session ID: {input_data.session_id}")
+        print(f"   - Broker: {input_data.broker}:{input_data.port}")
+        print(f"   - Topics: IN={input_data.input_topic}, OUT={input_data.output_topic}")
+        print(f"   - Model: {input_data.inference_model_name}")
     except ValidationError as e:
+        print(f"❌ VALIDATION ERROR: {e.errors()}")
         return jsonify({"error": "Invalid input data", "details": e.errors()}), 400
 
-    # Create a name for the Docker container with the user id
-    container_name = generate_docker_name(input_data.user_id)
+    # Create a name for the Docker container with the session id
+    container_name = generate_docker_name(input_data.session_id)
+    print(f"🐳 Container name: {container_name}")
 
     # Call the docker with the provided parameters
     try:
@@ -37,14 +52,24 @@ def start_ai_assistant_agent_docker():
             f"--output_topic={input_data.output_topic}",
             f"--inference_model_name={input_data.inference_model_name}"
         ]
-        # command = ["docker", "run", "-d","--network=host", "--name", "ai_assistant_1", "ai_assistant_image", "--broker=0.0.0.0", "--port=1883", "--user_id=1", "--input_topic=input", "--output_topic=output", "--inference_model_name=gemma3:4b"]
+        
+        print(f"🔧 Executing Docker command:")
+        print(f"   {' '.join(command)}")
+        
         result = subprocess.run(
             command,
             capture_output=True,
             text=True,
             check=True
         )
+        
+        print(f"✅ Docker container started successfully!")
+        print(f"   Container ID: {result.stdout.strip()}")
+        print("="*80 + "\n")
+        
     except subprocess.CalledProcessError as e:
+        print(f"❌ DOCKER ERROR: {e.stderr}")
+        print("="*80 + "\n")
         return jsonify({"error": "Failed to start Docker container", "details": e.stderr}), 500
 
     return jsonify({"message": "Docker container started successfully", "output": result.stdout}), 200

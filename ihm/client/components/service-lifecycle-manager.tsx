@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { useSessionId } from "@/lib/session-context";
 
 /**
  * Component that manages service lifecycle by calling turn_on_services
@@ -11,10 +12,8 @@ import { useSession } from "next-auth/react";
  */
 export function ServiceLifecycleManager() {
   const { data: session } = useSession();
-  // Generate a unique session ID for this component instance
-  const sessionIdRef = useRef<string>(
-    `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-  );
+  // Get the session ID from context
+  const sessionId = useSessionId();
   
   // Flag to track if turn_on_services has been called for this session_id
   const hasTurnedOnRef = useRef<boolean>(false);
@@ -30,7 +29,6 @@ export function ServiceLifecycleManager() {
 
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
     const userId = session.user?.id || "00000000-0000-0000-0000-000000000001";
-    const sessionId = sessionIdRef.current;
 
     const turnOnServices = async () => {
       try {
@@ -78,7 +76,7 @@ export function ServiceLifecycleManager() {
   // Main effect for handling page unload events and cleanup
   useEffect(() => {
     const backendUrl = backendUrlRef.current;
-    const sessionId = sessionIdRef.current;
+    const currentSessionId = sessionId; // Capture sessionId in closure
 
     // Function to call turn_off_services (with guard to prevent multiple calls)
     const turnOffServices = () => {
@@ -90,7 +88,7 @@ export function ServiceLifecycleManager() {
       
       // Use ref to get most current userId
       const requestData = {
-        session_id: sessionId,
+        session_id: currentSessionId,
         user_id: userIdRef.current,
       };
       
@@ -145,7 +143,7 @@ export function ServiceLifecycleManager() {
         turnOffServices();
       }
     };
-  }, []); // Empty deps - only run once on mount, cleanup on unmount
+  }, [sessionId]); // Include sessionId as dependency
 
   // This component doesn't render anything
   return null;

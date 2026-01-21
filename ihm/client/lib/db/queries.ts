@@ -64,12 +64,14 @@ export async function createUser(email: string, password: string) {
 }
 
 export async function createGuestUser() {
-  // Always return the fixed guest user
-  console.log(`[createGuestUser] Returning fixed guest user`);
+  // Generate a unique ID for each guest user
+  const guestId = generateUUID();
+  const guestEmail = `guest-${guestId}@temp.com`;
+  console.log(`[createGuestUser] Creating new guest user: ${guestId}`);
   
   return [{
-    id: "00000000-0000-0000-0000-000000000001",
-    email: "guest-fixed@temp.com"
+    id: guestId,
+    email: guestEmail
   }];
 }
 

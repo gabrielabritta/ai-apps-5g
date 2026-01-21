@@ -12,6 +12,7 @@ class AiAssistantInputData(BaseModel, extra=Extra.forbid):
     broker: str
     port: int
     user_id: int
+    session_id: str
     input_topic: str
     output_topic: str
     inference_model_name: str
@@ -25,15 +26,18 @@ class AiAssistantKillData(BaseModel, extra=Extra.forbid):
         extra (Extra, optional): _Extra_ from pydantic library. Defaults to Extra.forbid.
     """
     user_id: int
+    session_id: str
 
 
-def generate_docker_name(user_id: int) -> str:
-    """Generates an unique name for the docker container
+def generate_docker_name(session_id: str) -> str:
+    """Generates a unique name for the docker container based on session_id.
 
     Args:
-        user_id (int): The user ID for which to generate the container name.
+        session_id (str): The session ID for which to generate the container name.
 
     Returns:
         str: The generated container name.
     """
-    return f"ai_assistant_{user_id}"
+    # Replace special characters with underscores to make it Docker-safe
+    safe_session_id = session_id.replace("-", "_").replace(":", "_").replace(".", "_")
+    return f"ai_assistant_{safe_session_id}"

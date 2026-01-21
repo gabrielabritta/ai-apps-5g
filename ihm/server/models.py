@@ -6,6 +6,8 @@ class InferenceRequest(BaseModel):
     """Model for inference requests."""
 
     query: str
+    user_id: str
+    session_id: str
     search_db: bool = True
     use_history: bool = True
     search_urls: bool = False

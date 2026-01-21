@@ -103,32 +103,28 @@ export async function POST(request: Request) {
       message,
       selectedChatModel,
       selectedVisibilityType,
+      sessionId,
     }: {
       id: string;
       message: ChatMessage;
       selectedChatModel: ChatModel["id"];
       selectedVisibilityType: VisibilityType;
+      sessionId?: string;
     } = requestBody;
 
     const session = await auth();
 
-    // TEMPORARY FIX: Always use fixed guest user
-    const fixedGuestUser = {
-      id: "00000000-0000-0000-0000-000000000001",
-      email: "guest-fixed@temp.com",
-      type: "guest"
-    };
-
     if (!session?.user) {
-      console.log("[API Route] No session found, using fixed guest user");
-    } else {
-      console.log(`[API Route] Session found: ${session.user.id}, but using fixed guest user`);
+      return new ChatSDKError("unauthorized").toResponse();
     }
 
-    const userType: UserType = fixedGuestUser.type;
+    const userId = session.user.id;
+    const userType: UserType = session.user.type;
+
+    console.log(`[API Route] Session found: User ID ${userId}, Type: ${userType}`);
 
     const messageCount = await getMessageCountByUserId({
-      id: fixedGuestUser.id,
+      id: userId,
       differenceInHours: 24,
     });
 
@@ -139,7 +135,7 @@ export async function POST(request: Request) {
     const chat = await getChatById({ id });
 
     if (chat) {
-      if (chat.userId !== fixedGuestUser.id) {
+      if (chat.userId !== userId) {
         return new ChatSDKError("forbidden:chat").toResponse();
       }
     } else {
@@ -149,7 +145,7 @@ export async function POST(request: Request) {
 
       await saveChat({
         id,
-        userId: fixedGuestUser.id,
+        userId,
         title,
         visibility: selectedVisibilityType,
       });
@@ -210,6 +206,8 @@ export async function POST(request: Request) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query: query,
+          user_id: userId,
+          session_id: sessionId || `fallback-session-${userId}`,
           search_db: search_db,
           use_history: use_history,
           search_urls: search_urls,
