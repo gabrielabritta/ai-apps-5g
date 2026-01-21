@@ -12,7 +12,7 @@ from paho.mqtt.client import CallbackAPIVersion
 
 from fastapi import HTTPException
 
-from ihm.server.config import MQTT_BROKER, MQTT_PORT
+from ihm.server.config import MQTT_BROKER, MQTT_INPUT_TOPIC, MQTT_OUTPUT_TOPIC, MQTT_PORT
 from ihm.server import state
 
 logger = logging.getLogger(__name__)
@@ -140,8 +140,8 @@ def initialize_mqtt_client() -> bool:
         state.mqtt_client_manager = MQTTClientManager(
             broker=MQTT_BROKER,
             port=MQTT_PORT,
-            input_topic="input",
-            output_topic="output",
+            input_topic=MQTT_INPUT_TOPIC,
+            output_topic=MQTT_OUTPUT_TOPIC,
         )
         state.mqtt_client_manager.connect()
         return True
