@@ -16,5 +16,8 @@ python-dotenv==1.0.0
 # MQTT client for AI Assistant agent communication
 paho-mqtt>=2.0.0
 
+# REST API client
+httpx==0.27.0
+
 # Note: Langchain dependencies are not needed here as AI Assistant runs in Docker container
 # All langchain dependencies are installed in the Docker container image
