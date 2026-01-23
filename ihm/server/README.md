@@ -57,9 +57,31 @@ The server is configured through environment variables:
 ## Execution
 
 ### Local
+
+**Importante:** Execute os comandos a partir da raiz do projeto (`ai-apps-5g`), não de dentro de `ihm/server`.
+
+#### Opção 1: Usando Python como módulo (recomendado)
 ```bash
-pip install -r requirements.txt
-python main.py
+# A partir da raiz do projeto
+cd /path/to/ai-apps-5g
+pip install -r ihm/server/requirements.txt
+python -m ihm.server.main
 ```
 
-The server will be available at `http://localhost:8000`
+#### Opção 2: Usando uvicorn diretamente
+```bash
+# A partir da raiz do projeto
+cd /path/to/ai-apps-5g
+pip install -r ihm/server/requirements.txt
+uvicorn ihm.server.modules.app:app --reload
+```
+
+#### Opção 3: Executando main.py diretamente (requer estar na raiz)
+```bash
+# A partir da raiz do projeto
+cd /path/to/ai-apps-5g
+pip install -r ihm/server/requirements.txt
+python ihm/server/main.py
+```
+
+O servidor estará disponível em `http://localhost:8000` (ou na porta configurada no `config.env`)
